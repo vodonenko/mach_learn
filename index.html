@@ -31,37 +31,182 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <p>&lt;!DOCTYPE html&gt;</p>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p></p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+<p></p>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+</p>
 
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<p></p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p></p>
 
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<p></p>Model for classifying workouts
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
 
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<p>
+
+</p>
+
+
+
+code{white-space: pre;}
+
+<p></p>
+
+
+
+
+  pre:not([class]) {
+    background-color: white;
+  }
+
+
+
+
+<p></p>
+
+<p></p>
+
+
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+<div>
+
+
+<div>
+<h1>
+<a name="model-for-classifying-workouts" class="anchor" href="#model-for-classifying-workouts"><span class="octicon octicon-link"></span></a>Model for classifying workouts</h1>
+<h4>
+<a name="roman-vodonenko" class="anchor" href="#roman-vodonenko"><span class="octicon octicon-link"></span></a><em>Roman Vodonenko</em>
+</h4>
+<h4>
+<a name="10232014" class="anchor" href="#10232014"><span class="octicon octicon-link"></span></a><em>10/23/2014</em>
+</h4>
+</div>
+
+<ol>
+<li>Getting data from csv file:</li>
+</ol>
+
+<pre><code>train_data &lt;- read.csv("pml-training.csv")</code></pre>
+
+<ol start="2">
+<li>Eliminating those values that have variance close to zero:</li>
+</ol>
+
+<pre><code>nzv &lt;- nearZeroVar(train_data, saveMetrics=TRUE)
+train_data &lt;- train_data[, !(nzv$nzv)]</code></pre>
+
+<ol start="3">
+<li>Some variables have a large number of NA values. We need to eliminate them:</li>
+</ol>
+
+<pre><code>nna &lt;- data.frame()
+for(i in 1:ncol(train_data)){
+    nna &lt;- rbind(nna, data.frame(variable=colnames(train_data)[i], 
+                                 na_percent=sum(is.na(train_data[,i]))/nrow(train_data)
+                                 )
+                 )
+}
+
+na_pecent_freq &lt;- table(nna$na_percent)
+train_data &lt;- train_data[,nna$na_percent==0]</code></pre>
+
+<ol start="5">
+<li>Eliminating the redundant time stamp variable:</li>
+</ol>
+
+<pre><code>train_data  &lt;- subset(train_data, select = -(cvtd_timestamp))</code></pre>
+
+<ol start="6">
+<li>Converting factor variables to binomial:</li>
+</ol>
+
+<pre><code>user_dummy &lt;- dummyVars(classe~user_name, data=train_data)
+train_data &lt;- cbind(predict(user_dummy, train_data),subset(train_data, select = -c(X,user_name)) )</code></pre>
+
+<ol start="7">
+<li>Preprocessing with PCA in order to reduce number of variables</li>
+</ol>
+
+<pre><code>pca_model &lt;- preProcess(subset(train_data, select=-classe), method="pca", thresh=0.95)
+predictor &lt;- predict(pca_model,subset(train_data, select=-classe) )
+pca_data &lt;- cbind(classe=train_data$classe, predictor)</code></pre>
+
+<ol start="8">
+<li>Building a 3 models using Decision Tree, Naive Bayes and kNN methods:</li>
+</ol>
+
+<pre><code>set.seed(123)
+sample_index &lt;- createDataPartition(y=pca_data$classe, list=FALSE, p=0.6)
+
+train_set &lt;- pca_data[sample_index,]
+test_set &lt;- pca_data[-sample_index,]
+
+ctree_mod &lt;- train(classe~., data=train_set, method='ctree')
+nb_mod &lt;- train(classe~., data=train_set, method = "nb")
+fit_knn&lt;-train.kknn(formula=classe~., data=train_set)</code></pre>
+
+<ol start="9">
+<li>Applying cross valdiation to test each of the selected models:</li>
+</ol>
+
+<pre><code>x_validation &lt;- data.frame( actual = test_set$classe,
+                            ctree_prediction=predict(ctree_mod, test_set), 
+                            nb_prediction=predict(nb_mod, test_set), 
+                            knn_prediction =predict(fit_knn, test_set)
+                            
+                            )</code></pre>
+
+<ol start="10">
+<li>Calculating accuracy for each of the selected models:</li>
+</ol>
+
+<pre><code>ctree_accuracy &lt;- sum(x_validation$ctree_prediction==x_validation$actual)/nrow(x_validation)
+nb_accuracy &lt;- sum(x_validation$nb_prediction==x_validation$actual)/nrow(x_validation)
+knn_accuracy &lt;- sum(x_validation$knn_prediction==x_validation$actual)/nrow(x_validation)</code></pre>
+
+<ol start="11">
+<li>Since kNN was the best model in terms of acccuracy we select this method to build the final model:</li>
+</ol>
+
+<pre><code>fit_knn_all_data &lt;- train.kknn(formula=classe~., data=pca_data)</code></pre>
+
+<ol start="12">
+<li>Applying final model to the test data:</li>
+</ol>
+
+<pre><code>test_data &lt;- read.csv("pml-testing.csv")
+test_data &lt;- test_data[, !(nzv$nzv)]
+test_data &lt;- test_data[,nna$na_percent==0]
+test_data  &lt;- subset(test_data, select = -(cvtd_timestamp))
+test_user_dummy &lt;- dummyVars(X~user_name, data=test_data)
+test_data &lt;- cbind(predict(test_user_dummy, test_data),subset(test_data, select = -c(X,user_name, problem_id)) )
+predictor_test &lt;- predict(pca_model,test_data)</code></pre>
+
+<p></p>
+</div>
+
+
+
+
+
+
+
+<p>
+</p>
       </section>
     </div>
 
